@@ -182,17 +182,4 @@ teamchat-slack-clone/
 └── README.md
 \`\`\`
 
-## 💡 Future Enhancements (Incomplete Tasks)
 
-*   **File Uploads**: Implement functionality to share files within channels.
-*   **User Mentions**: Allow users to mention specific team members in messages using `@username`.
-*   **Message Reactions**: Enable users to react to messages with emojis.
-*   **Admin Dashboard**: Create an administrative interface for managing users, channels, and application settings.
-*   **Direct Messaging**: Implement one-on-one private conversations between users.
-*   **User Profiles**: Allow users to view and edit their profiles.
-*   **Search Functionality**: Add the ability to search messages and channels.
-*   **Notifications**: Implement desktop or in-app notifications for new messages or mentions.
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).

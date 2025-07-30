@@ -1,44 +1,41 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock user database
-const users = [
-  {
-    id: "1",
-    username: "john_doe",
-    email: "john@example.com",
-    password: "password123", // In real app, this would be hashed
-  },
-  {
-    id: "2",
-    username: "jane_smith",
-    email: "jane@example.com",
-    password: "password123",
-  },
-]
+import { UserModel } from "@/lib/models/User"
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
-    // Find user
-    const user = users.find((u) => u.email === email && u.password === password)
+    // Validation
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+    }
 
+    // Find user
+    const user = await UserModel.findByEmail(email)
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    // Generate mock JWT token
-    const token = `mock-jwt-token-${user.id}-${Date.now()}`
+    // Validate password
+    const isValidPassword = await UserModel.validatePassword(user, password)
+    if (!isValidPassword) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+    }
+
+    // Generate token
+    const token = UserModel.generateToken(user._id!.toString())
 
     return NextResponse.json({
       token,
       user: {
-        id: user.id,
+        id: user._id!.toString(),
         username: user.username,
         email: user.email,
+        avatar: user.avatar,
       },
     })
   } catch (error) {
+    console.error("Login error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

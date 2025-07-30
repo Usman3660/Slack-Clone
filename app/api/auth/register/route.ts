@@ -1,40 +1,34 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock user database (in real app, this would be in a database)
-const users: any[] = []
+import { UserModel } from "@/lib/models/User"
 
 export async function POST(request: NextRequest) {
   try {
     const { username, email, password } = await request.json()
 
-    // Check if user already exists
-    const existingUser = users.find((u) => u.email === email)
-    if (existingUser) {
-      return NextResponse.json({ error: "User already exists" }, { status: 400 })
+    // Validation
+    if (!username || !email || !password) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 })
     }
 
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      username,
-      email,
-      password, // In real app, this would be hashed
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
     }
 
-    users.push(newUser)
-
-    // Generate mock JWT token
-    const token = `mock-jwt-token-${newUser.id}-${Date.now()}`
+    // Create user
+    const user = await UserModel.create({ username, email, password })
+    const token = UserModel.generateToken(user.id)
 
     return NextResponse.json({
       token,
-      user: {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-      },
+      user,
     })
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Register error:", error)
+
+    if (error.message === "User already exists") {
+      return NextResponse.json({ error: "User already exists" }, { status: 400 })
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

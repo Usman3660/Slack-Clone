@@ -1,8 +1,10 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "./auth-context"
+import io from "socket.io-client" // Default import for io function
+import type { Socket } from "socket.io-client" // Type import for Socket
 
 interface Message {
   id: string
@@ -23,11 +25,18 @@ interface Channel {
   createdAt: Date
 }
 
+interface TypingUser {
+  userId: string
+  username: string
+  channelId: string
+}
+
 interface ChatContextType {
   channels: Channel[]
   currentChannel: Channel | null
   messages: Message[]
   joinedChannels: string[]
+  typingUsers: TypingUser[] // New state for typing users
   setCurrentChannel: (channel: Channel | null) => void
   createChannel: (name: string, description?: string) => Promise<boolean>
   deleteChannel: (channelId: string) => Promise<boolean>
@@ -36,6 +45,8 @@ interface ChatContextType {
   sendMessage: (content: string) => Promise<boolean>
   loadChannels: () => Promise<void>
   loadMessages: (channelId: string) => Promise<void>
+  emitTyping: (channelId: string, userId: string, username: string) => void // New function
+  emitStopTyping: (channelId: string, userId: string) => void // New function
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -46,6 +57,74 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [joinedChannels, setJoinedChannels] = useState<string[]>([])
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]) // Initialize typing users state
+
+  const socketRef = useRef<Socket | null>(null)
+
+  // Initialize Socket.IO client
+  useEffect(() => {
+    // Connect to the standalone Socket.IO server
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001")
+
+    socket.on("connect", () => {
+      console.log("Socket.IO client connected:", socket.id)
+    })
+
+    socket.on("receiveMessage", (newMessage: Message) => {
+      console.log("Received new message via socket:", newMessage)
+      // Explicitly convert timestamp string to Date object
+      const messageWithCorrectTimestamp = {
+        ...newMessage,
+        timestamp: new Date(newMessage.timestamp),
+      }
+      setMessages((prev) => [...prev, messageWithCorrectTimestamp])
+      // Remove user from typing list if they sent a message
+      setTypingUsers((prev) =>
+        prev.filter((u) => u.userId !== newMessage.userId || u.channelId !== newMessage.channelId),
+      )
+    })
+
+    socket.on("userTyping", (data: TypingUser) => {
+      console.log(`${data.username} is typing in ${data.channelId}`)
+      setTypingUsers((prev) => {
+        if (prev.some((u) => u.userId === data.userId && u.channelId === data.channelId)) {
+          return prev // User already in typing list
+        }
+        return [...prev, data]
+      })
+    })
+
+    socket.on("userStopTyping", (data: { userId: string; channelId: string }) => {
+      console.log(`${data.userId} stopped typing in ${data.channelId}`)
+      setTypingUsers((prev) => prev.filter((u) => u.userId !== data.userId || u.channelId !== data.channelId))
+    })
+
+    socket.on("disconnect", () => {
+      console.log("Socket.IO client disconnected")
+    })
+
+    socketRef.current = socket
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+  // Handle channel changes for Socket.IO rooms
+  useEffect(() => {
+    if (socketRef.current && user) {
+      // Leave previous channel if any
+      if (currentChannel) {
+        socketRef.current.emit("leaveChannel", currentChannel.id)
+        // Clear typing users for the left channel
+        setTypingUsers((prev) => prev.filter((u) => u.channelId !== currentChannel.id))
+      }
+      // Join new channel
+      if (currentChannel) {
+        socketRef.current.emit("joinChannel", currentChannel.id)
+      }
+    }
+  }, [currentChannel, user])
 
   useEffect(() => {
     if (user) {
@@ -255,7 +334,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const newMessage = await response.json()
-        setMessages((prev) => [...prev, newMessage])
+        socketRef.current?.emit("sendMessage", newMessage) // Emit message via socket
+        emitStopTyping(currentChannel.id, user.id) // Stop typing after sending message
         return true
       }
       return false
@@ -265,6 +345,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const emitTyping = useCallback((channelId: string, userId: string, username: string) => {
+    if (socketRef.current) {
+      socketRef.current.emit("typing", { channelId, userId, username })
+    }
+  }, [])
+
+  const emitStopTyping = useCallback((channelId: string, userId: string) => {
+    if (socketRef.current) {
+      socketRef.current.emit("stopTyping", { channelId, userId })
+    }
+  }, [])
+
   return (
     <ChatContext.Provider
       value={{
@@ -272,6 +364,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         currentChannel,
         messages,
         joinedChannels,
+        typingUsers, // Provide typing users state
         setCurrentChannel,
         createChannel,
         deleteChannel,
@@ -280,6 +373,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         sendMessage,
         loadChannels,
         loadMessages,
+        emitTyping, // Provide emitTyping function
+        emitStopTyping, // Provide emitStopTyping function
       }}
     >
       {children}

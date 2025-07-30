@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Mock channels database - shared reference
-const channels = [
+// Mock channels database
+const mockChannels = [
   {
     id: "1",
     name: "general",
@@ -51,12 +51,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const channel = channels.find((c) => c.id === params.id)
+    const channel = mockChannels.find((c) => c.id === params.id)
     if (!channel) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 })
     }
 
-    channel.members = channel.members.filter((memberId) => memberId !== userId)
+    // Remove user from channel
+    const memberIndex = channel.members.indexOf(userId)
+    if (memberIndex > -1) {
+      channel.members.splice(memberIndex, 1)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

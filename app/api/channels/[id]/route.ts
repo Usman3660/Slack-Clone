@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Mock channels database - shared reference
-const channels = [
+// Mock channels database
+const mockChannels = [
   {
     id: "1",
     name: "general",
@@ -51,17 +51,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const channelIndex = channels.findIndex((c) => c.id === params.id)
+    const channelIndex = mockChannels.findIndex((c) => c.id === params.id && c.createdBy === userId)
     if (channelIndex === -1) {
-      return NextResponse.json({ error: "Channel not found" }, { status: 404 })
+      return NextResponse.json({ error: "Channel not found or unauthorized" }, { status: 404 })
     }
 
-    const channel = channels[channelIndex]
-    if (channel.createdBy !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    channels.splice(channelIndex, 1)
+    // Remove channel from mock database
+    mockChannels.splice(channelIndex, 1)
 
     return NextResponse.json({ success: true })
   } catch (error) {

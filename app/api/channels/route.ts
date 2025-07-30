@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Mock channels database - shared reference
-const channels = [
+// Mock channels database
+const mockChannels = [
   {
     id: "1",
     name: "general",
@@ -44,9 +44,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    return NextResponse.json(channels)
+    const token = authHeader.replace("Bearer ", "")
+    const userId = getUserIdFromToken(token)
+
+    if (!userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
+
+    return NextResponse.json(mockChannels)
   } catch (error) {
-    console.error("Error in channels API:", error)
+    console.error("Error fetching channels:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -71,16 +78,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Channel name is required" }, { status: 400 })
     }
 
+    // Check if channel name already exists
+    const existingChannel = mockChannels.find((c) => c.name === name.trim())
+    if (existingChannel) {
+      return NextResponse.json({ error: "Channel name already exists" }, { status: 400 })
+    }
+
     const newChannel = {
-      id: Date.now().toString(),
+      id: (mockChannels.length + 1).toString(),
       name: name.trim(),
-      description: description || "",
-      members: [userId],
+      description,
+      members: [userId], // Creator automatically joins
       createdBy: userId,
       createdAt: new Date(),
     }
 
-    channels.push(newChannel)
+    mockChannels.push(newChannel)
 
     return NextResponse.json(newChannel)
   } catch (error) {

@@ -3,9 +3,9 @@
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { Sidebar } from "@/components/sidebar"
-import { ChatArea } from "@/components/chat-area"
-import { WelcomeScreen } from "@/components/welcome-screen"
+import { Sidebar } from "@/components/dashboard/sidebar"
+import { ChatArea } from "@/components/dashboard/chat-area"
+import { WelcomeScreen } from "@/components/dashboard/welcome-screen"
 import { useChat } from "@/contexts/chat-context"
 
 export default function DashboardPage() {
@@ -26,7 +26,7 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 flex flex-col">{currentChannel ? <ChatArea /> : <WelcomeScreen />}</div>
+      <div className="flex-1 flex flex-col min-w-0">{currentChannel ? <ChatArea /> : <WelcomeScreen />}</div>
     </div>
   )
 }

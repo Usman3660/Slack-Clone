@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 // Mock messages database
-const messages = [
+const messages: any[] = [
   {
     id: "1",
     content: "Welcome to the general channel!",
@@ -35,14 +35,18 @@ const users = [
 ]
 
 function getUserIdFromToken(token: string): string | null {
-  const match = token.match(/mock-jwt-token-(\d+)-/)
-  return match ? match[1] : null
+  try {
+    const match = token.match(/mock-jwt-token-(\d+)-/)
+    return match ? match[1] : null
+  } catch (error) {
+    return null
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization")
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -55,6 +59,14 @@ export async function POST(request: NextRequest) {
 
     const { content, channelId } = await request.json()
 
+    if (!content || content.trim() === "") {
+      return NextResponse.json({ error: "Message content is required" }, { status: 400 })
+    }
+
+    if (!channelId) {
+      return NextResponse.json({ error: "Channel ID is required" }, { status: 400 })
+    }
+
     const user = users.find((u) => u.id === userId)
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
@@ -62,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const newMessage = {
       id: Date.now().toString(),
-      content,
+      content: content.trim(),
       userId,
       username: user.username,
       channelId,
@@ -73,6 +85,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newMessage)
   } catch (error) {
+    console.error("Error creating message:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get("authorization")
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    return NextResponse.json(messages)
+  } catch (error) {
+    console.error("Error fetching messages:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

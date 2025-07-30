@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Mock channels database - shared reference
-const channels = [
+// Mock channels database (should be shared, but for simplicity we'll duplicate)
+const mockChannels = [
   {
     id: "1",
     name: "general",
@@ -51,11 +51,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const channel = channels.find((c) => c.id === params.id)
+    const channel = mockChannels.find((c) => c.id === params.id)
     if (!channel) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 })
     }
 
+    // Add user to channel if not already a member
     if (!channel.members.includes(userId)) {
       channel.members.push(userId)
     }

@@ -1,29 +1,54 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Mock user database (in real app, this would be in a database)
-const users: any[] = []
+// Mock users database (shared with login route)
+const mockUsers = [
+  {
+    id: "1",
+    username: "john_doe",
+    email: "john@example.com",
+    password: "password123",
+    avatar: undefined,
+  },
+  {
+    id: "2",
+    username: "jane_smith",
+    email: "jane@example.com",
+    password: "password123",
+    avatar: undefined,
+  },
+]
 
 export async function POST(request: NextRequest) {
   try {
     const { username, email, password } = await request.json()
 
+    // Validation
+    if (!username || !email || !password) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 })
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
+    }
+
     // Check if user already exists
-    const existingUser = users.find((u) => u.email === email)
+    const existingUser = mockUsers.find((u) => u.email === email)
     if (existingUser) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 })
     }
 
     // Create new user
     const newUser = {
-      id: Date.now().toString(),
+      id: (mockUsers.length + 1).toString(),
       username,
       email,
-      password, // In real app, this would be hashed
+      password, // In real app, hash this
+      avatar: undefined,
     }
 
-    users.push(newUser)
+    mockUsers.push(newUser)
 
-    // Generate mock JWT token
+    // Generate mock token
     const token = `mock-jwt-token-${newUser.id}-${Date.now()}`
 
     return NextResponse.json({
@@ -32,9 +57,11 @@ export async function POST(request: NextRequest) {
         id: newUser.id,
         username: newUser.username,
         email: newUser.email,
+        avatar: newUser.avatar,
       },
     })
   } catch (error) {
+    console.error("Register error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

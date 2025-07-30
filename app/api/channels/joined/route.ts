@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Mock channels database - make sure this is a shared reference
-const channels = [
+// Mock channels database - make sure this matches the one in route.ts
+const mockChannels = [
   {
     id: "1",
     name: "general",
@@ -51,11 +51,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const joinedChannelIds = channels.filter((channel) => channel.members.includes(userId)).map((channel) => channel.id)
+    // Find channels where user is a member
+    const joinedChannelIds = mockChannels
+      .filter((channel) => channel.members.includes(userId))
+      .map((channel) => channel.id)
 
     return NextResponse.json(joinedChannelIds)
   } catch (error) {
-    console.error("Error in joined channels API:", error)
+    console.error("Error fetching joined channels:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -1,60 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock messages database
-const messages: any[] = [
-  {
-    id: "1",
-    content: "Welcome to the general channel!",
-    userId: "1",
-    username: "john_doe",
-    channelId: "1",
-    timestamp: new Date("2024-01-01T10:00:00Z"),
-  },
-  {
-    id: "2",
-    content: "Thanks! Excited to be here.",
-    userId: "2",
-    username: "jane_smith",
-    channelId: "1",
-    timestamp: new Date("2024-01-01T10:05:00Z"),
-  },
-  {
-    id: "3",
-    content: "Let's start building something amazing!",
-    userId: "1",
-    username: "john_doe",
-    channelId: "1",
-    timestamp: new Date("2024-01-01T10:10:00Z"),
-  },
-]
-
-// Mock users for username lookup
-const users = [
-  { id: "1", username: "john_doe" },
-  { id: "2", username: "jane_smith" },
-]
-
-function getUserIdFromToken(token: string): string | null {
-  try {
-    const match = token.match(/mock-jwt-token-(\d+)-/)
-    return match ? match[1] : null
-  } catch (error) {
-    return null
-  }
-}
+import { MessageModel } from "@/lib/models/Message"
+import { authenticateToken } from "@/lib/middleware/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const auth = await authenticateToken(request)
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const token = authHeader.replace("Bearer ", "")
-    const userId = getUserIdFromToken(token)
-
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     const { content, channelId } = await request.json()
@@ -67,39 +19,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Channel ID is required" }, { status: 400 })
     }
 
-    const user = users.find((u) => u.id === userId)
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    const newMessage = {
-      id: Date.now().toString(),
-      content: content.trim(),
-      userId,
-      username: user.username,
+    const newMessage = await MessageModel.create({
+      content,
+      userId: auth.userId,
       channelId,
-      timestamp: new Date(),
-    }
-
-    messages.push(newMessage)
+    })
 
     return NextResponse.json(newMessage)
   } catch (error) {
     console.error("Error creating message:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    return NextResponse.json(messages)
-  } catch (error) {
-    console.error("Error fetching messages:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

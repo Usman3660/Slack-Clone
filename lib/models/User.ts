@@ -20,7 +20,11 @@ export interface UserResponse {
   avatar?: string
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+// Ensure JWT_SECRET is loaded from environment variables
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  throw new Error('Missing environment variable: "JWT_SECRET"')
+}
 
 export class UserModel {
   static async create(userData: Omit<User, "_id" | "createdAt" | "updatedAt">): Promise<UserResponse> {
@@ -86,6 +90,7 @@ export class UserModel {
     try {
       return jwt.verify(token, JWT_SECRET) as { userId: string }
     } catch (error) {
+      console.error("JWT verification failed:", error) // Added logging
       return null
     }
   }

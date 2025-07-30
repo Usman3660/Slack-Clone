@@ -101,7 +101,7 @@ export function Sidebar() {
   const availableChannels = channels.filter((channel) => !joinedChannels.includes(channel.id))
 
   return (
-    <div className="w-180 bg-slate-800 text-white flex flex-col">
+    <div className="w-120 bg-slate-800 text-white flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-slate-700">
         <div className="flex items-center justify-between">
@@ -133,12 +133,12 @@ export function Sidebar() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Channels</h2>
-              {/* More visible Create Channel button */}
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-1 px-2 py-1">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {" "}
+                    {/* Increased size */}
                     <Plus className="h-4 w-4" />
-                    <span className="text-xs font-medium">New Channel</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -183,10 +183,7 @@ export function Sidebar() {
                 <span>Dashboard</span>
               </Button>
               {joinedChannelsList.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-slate-400 italic px-3 mb-2">No channels joined yet</p>
-                  <p className="text-xs text-slate-400">Browse channels below or create a new one!</p>
-                </div>
+                <p className="text-sm text-slate-400 italic px-3">No channels joined yet</p>
               ) : (
                 joinedChannelsList.map((channel) => (
                   <div key={channel.id} className="group flex items-center hover:bg-slate-700 rounded-md">
@@ -205,6 +202,7 @@ export function Sidebar() {
                     <div className="px-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
+                          {/* Removed opacity-0 and group-hover:opacity-100 */}
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-600">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -255,9 +253,9 @@ export function Sidebar() {
                       </Badge>
                     </div>
                     <Button
-                      variant="default"
+                      variant="ghost"
                       size="sm"
-                      className="h-8 px-3 ml-2 text-white bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                      className="h-8 px-3 ml-2 text-slate-400 hover:text-white hover:bg-blue-600 flex-shrink-0"
                       onClick={() => handleJoinChannel(channel.id)}
                     >
                       <UserPlus className="h-4 w-4 mr-1" />

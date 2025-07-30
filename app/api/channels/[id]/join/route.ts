@@ -1,64 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock channels database (should be shared, but for simplicity we'll duplicate)
-const mockChannels = [
-  {
-    id: "1",
-    name: "general",
-    description: "General discussion for the team",
-    members: ["1", "2"],
-    createdBy: "1",
-    createdAt: new Date("2024-01-01"),
-  },
-  {
-    id: "2",
-    name: "random",
-    description: "Random conversations and fun stuff",
-    members: ["1"],
-    createdBy: "1",
-    createdAt: new Date("2024-01-02"),
-  },
-  {
-    id: "3",
-    name: "development",
-    description: "Development discussions and updates",
-    members: ["2"],
-    createdBy: "2",
-    createdAt: new Date("2024-01-03"),
-  },
-]
-
-function getUserIdFromToken(token: string): string | null {
-  try {
-    const match = token.match(/mock-jwt-token-(\d+)-/)
-    return match ? match[1] : null
-  } catch (error) {
-    return null
-  }
-}
+import { ChannelModel } from "@/lib/models/Channel"
+import { authenticateToken } from "@/lib/middleware/auth"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const auth = await authenticateToken(request)
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const token = authHeader.replace("Bearer ", "")
-    const userId = getUserIdFromToken(token)
+    const success = await ChannelModel.addMember(params.id, auth.userId)
 
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
-    }
-
-    const channel = mockChannels.find((c) => c.id === params.id)
-    if (!channel) {
+    if (!success) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 })
-    }
-
-    // Add user to channel if not already a member
-    if (!channel.members.includes(userId)) {
-      channel.members.push(userId)
     }
 
     return NextResponse.json({ success: true })
